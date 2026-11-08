@@ -1,0 +1,39 @@
+.container { min-height: 100svh; width: 100%; padding: 88px clamp(24px, 6vw, 100px) 44px; box-sizing: border-box; display: grid; align-items: center; }
+.shell { width: 100%; max-width: 1260px; margin: 0 auto; display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(360px, .9fr); align-items: center; gap: clamp(40px, 7vw, 120px); }
+.identity { min-width: 0; position: relative; }
+.brand { display: flex; align-items: center; gap: 13px; font-size: 25px; font-weight: 800; letter-spacing: -.04em; margin-bottom: 56px; }
+.brandStar { width: 37px; height: 42px; object-fit: contain; }
+.eyebrow { color: var(--accent); font: 500 11px/1.6 var(--font-mono), monospace; letter-spacing: .19em; text-transform: uppercase; margin: 0 0 20px; }
+.heroTitle { margin: 0; font-size: clamp(36px, 4.5vw, 66px); line-height: 1.1; letter-spacing: -.06em; font-weight: 800; }
+.heroTitle span { color: var(--accent); }
+.intro { color: var(--text-muted); font-size: 17px; line-height: 1.75; max-width: 400px; margin: 25px 0 0; }
+.artwork { height: 235px; display: flex; align-items: center; justify-content: center; max-width: 420px; margin-top: 10px; }
+.heroStar { width: 260px; height: 240px; object-fit: contain; }
+.caption { font: 400 10px/1.9 var(--font-mono), monospace; letter-spacing: .035em; color: var(--text-muted); margin: 14px 0 0; }
+.card { min-width: 0; padding: 40px 0 40px 40px; border-left: 1px solid var(--border); }
+.title { font-size: clamp(27px, 3vw, 38px); letter-spacing: -.04em; line-height: 1.2; margin: 0 0 15px; }
+.subtitle { font-size: 14px; line-height: 1.7; color: var(--text-muted); margin: 0 0 32px; max-width: 360px; }
+.themeToggle { position: absolute; top: 28px; right: clamp(24px, 5vw, 72px); z-index: 5; display: flex; align-items: center; justify-content: center; gap: 9px; min-height: 42px; padding: 9px 13px; color: var(--text-muted); background: var(--surface); border: 1px solid var(--border); border-radius: 8px; font-size: 12px; cursor: pointer; }
+.themeToggle:hover { color: var(--text-main); border-color: var(--accent); }
+.roleSelector { display: flex; width: 100%; gap: 4px; border-bottom: 1px solid var(--border); margin-bottom: 30px; }
+.roleBtn { flex: 1; background: transparent; color: var(--text-muted); border: 0; border-bottom: 2px solid transparent; padding: 13px 6px; min-height: 46px; font-size: 12px; font-weight: 600; cursor: pointer; }
+.roleBtn:hover { color: var(--text-main); }
+.activeRole { color: var(--accent); border-bottom-color: var(--accent); }
+.form { display: flex; flex-direction: column; gap: 20px; }
+.field { display: flex; flex-direction: column; gap: 10px; min-width: 0; color: var(--text-main); font-size: 13px; font-weight: 600; }
+.input { width: 100%; min-height: 51px; padding: 13px 15px; box-sizing: border-box; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); color: var(--text-main); font-size: 14px; line-height: 1.5; }
+.input::placeholder { color: var(--text-muted); opacity: 1; }
+.input:focus { outline: 2px solid var(--accent); outline-offset: 2px; }
+.submitBtn { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 54px; padding: 15px 20px; margin-top: 6px; border: 1px solid transparent; border-radius: 9px; background: var(--action); color: var(--action-text); font-size: 15px; font-weight: 800; cursor: pointer; transition: filter .2s, transform .2s; }
+.submitBtn:hover:not(:disabled) { filter: brightness(1.08); transform: translateY(-1px); }
+.submitBtn:disabled { opacity: .65; cursor: wait; }
+.switchText { color: var(--text-muted); font-size: 12px; line-height: 1.9; margin: 5px 0 0; }
+.textButton { padding: 3px 0; border: 0; border-bottom: 1px solid var(--accent); color: var(--accent); background: transparent; font-size: inherit; font-weight: 600; cursor: pointer; }
+.error { color: var(--error); font-size: 13px; line-height: 1.6; margin: 0; }
+@media (max-width: 900px) { .shell { gap: 30px; grid-template-columns: minmax(0, 1fr) minmax(340px, 1fr); } .card { padding-left: 28px; } .heroTitle { font-size: 40px; } .caption { max-width: 260px; } }
+@media (max-width: 700px) { .container { padding: 86px 24px 36px; align-items: start; } .shell { display: block; max-width: 460px; } .brand { font-size: 22px; margin-bottom: 35px; } .identity > .eyebrow, .artwork, .caption { display: none; } .heroTitle { font-size: clamp(32px, 8vw, 44px); } .intro { font-size: 14px; margin-top: 18px; } .card { border-left: 0; border-top: 1px solid var(--border); padding: 28px 0 0; margin-top: 30px; } .card > .eyebrow { display: none; } .title { font-size: 28px; } .subtitle { margin-bottom: 20px; } .roleSelector { margin-bottom: 24px; } .themeToggle { top: 22px; right: 24px; } .themeToggle span { display: none; } }
+@media (prefers-reduced-motion: reduce) { .submitBtn { transition: none; } .submitBtn:hover:not(:disabled) { transform: none; } }
+
+/* Selected typography: Tektur + Golos Text. */
+.brand{font-family:var(--font-display);font-weight:600;letter-spacing:-.02em}
+.heroTitle,.title{font-weight:600;letter-spacing:-.02em}

@@ -1,0 +1,21 @@
+.container { width: 100%; min-height: 100svh; box-sizing: border-box; padding: 92px clamp(24px, 6vw, 90px) 50px; }
+.layout { display: grid; grid-template-columns: minmax(0, .9fr) minmax(0, 1.1fr); gap: clamp(40px, 8vw, 130px); max-width: 1220px; margin: 0 auto; align-items: start; }
+.intro { padding-top: 10px; position: sticky; top: 60px; }
+.intro h1 { margin: 0; font-size: clamp(35px, 4vw, 56px); line-height: 1.13; font-weight: 800; letter-spacing: -.05em; }
+.intro h1 span { color: var(--accent); }
+.introText { color: var(--text-muted); font-size: 16px; line-height: 1.8; max-width: 370px; margin: 24px 0 0; }
+.star { display: block; height: 230px; width: 250px; object-fit: contain; margin: 30px auto; }
+.backLink { display: inline-flex; align-items: center; gap: 10px; color: var(--accent); background: transparent; border: 0; padding: 10px 0; font-size: 13px; cursor: pointer; }
+.content { min-width: 0; padding-left: 40px; border-left: 1px solid var(--border); }
+.form { display: flex; flex-direction: column; gap: 20px; }
+.row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 18px; }
+.optional { font-size: 11px; font-weight: 400; color: var(--text-muted); margin-top: -5px; }
+.hint { color: var(--text-muted); font-size: 11px; font-weight: 400; line-height: 1.6; }
+.errorMsg, .successMsg { margin: 0; font-size: 13px; line-height: 1.6; }
+.errorMsg { color: var(--error); }
+.successMsg { color: var(--success); }
+@media (max-width: 900px) { .layout { gap: 34px; } .content { padding-left: 28px; } .intro h1 { font-size: 38px; } .row { grid-template-columns: 1fr; gap: 20px; } }
+@media (max-width: 700px) { .container { padding: 86px 24px 36px; } .layout { display: block; max-width: 480px; } .intro { position: static; padding: 0; } .intro h1, .introText, .star, .intro > p { display: none; } .intro > div { margin-bottom: 12px; } .backLink { margin-bottom: 25px; } .content { padding: 27px 0 0; border-left: 0; border-top: 1px solid var(--border); } .content > p:first-child { display: none; } }
+
+/* Selected typography: Tektur + Golos Text. */
+.intro h1{font-weight:600;letter-spacing:-.02em}

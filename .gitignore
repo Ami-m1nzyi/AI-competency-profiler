@@ -1,0 +1,30 @@
+# Секреты
+.env
+.env.*
+!.env.example
+
+# Зависимости и сборка фронтенда
+frontend/node_modules/
+frontend/dist/
+
+# Python-мусор и виртуальное окружение
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+
+# База данных и загруженные файлы пользователей
+backend/profiler.db
+backend/profiler.db-*
+backend/uploads/
+
+# Локальные журналы и состояние сервера
+logs/
+*.log
+
+# Настройки редактора и временные файлы
+.vscode/
+~$*
+*.docx
+

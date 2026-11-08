@@ -1,0 +1,7 @@
+Flask==3.0.3
+Flask-Cors==4.0.1
+openai==1.51.0
+Werkzeug==3.0.4
+python-dotenv==1.2.3
+requests
+httpx<0.28

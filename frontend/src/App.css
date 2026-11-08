@@ -1,0 +1,1 @@
+.app-container{width:100%;min-height:100dvh}.main-content{width:100%;min-width:0;padding-bottom:40px}.skip-link{position:fixed;top:12px;left:20px;z-index:1000;background:var(--action);color:var(--action-text);width:1px;height:1px;padding:0;overflow:hidden;clip-path:inset(50%);white-space:nowrap}.skip-link:focus{width:auto;height:auto;padding:10px 16px;clip-path:none}

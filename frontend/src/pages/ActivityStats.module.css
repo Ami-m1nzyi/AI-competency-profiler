@@ -1,0 +1,50 @@
+
+.page { width: 100%; max-width: 1440px; min-width: 0; margin: 0 auto; padding: 38px clamp(18px, 4vw, 56px) 64px; }
+.header { margin-bottom: 32px; }
+.eyebrow { margin: 0 0 12px; color: var(--accent); font: 11px/1.5 var(--font-mono); text-transform: uppercase; letter-spacing: .13em; }
+.title { margin: 0; font-size: clamp(28px, 3vw, 42px); line-height: 1.2; letter-spacing: -.04em; }
+.description { margin: 14px 0 0; color: var(--text-muted); font-size: 14px; line-height: 1.7; max-width: 650px; }
+.filters { display: flex; flex-wrap: wrap; align-items: center; gap: 20px; padding: 22px 24px; border: 1px solid var(--border); border-radius: 7px; background: var(--surface); margin-bottom: 32px; }
+.filterIcon { color: var(--accent); }
+.filters label { display: flex; align-items: center; gap: 12px; color: var(--text-muted); font-size: 13px; }
+.filters input { min-height: 44px; max-width: 100%; padding: 11px 13px; border: 1px solid var(--border); border-radius: 5px; background: var(--background); color: var(--text-main); font: 13px/1.4 var(--font-mono); }
+.rangeArrow { display: flex; color: var(--text-muted); }
+.btn { display: inline-flex; justify-content: center; align-items: center; gap: 20px; min-height: 44px; margin-left: auto; padding: 12px 22px; background: var(--action); color: var(--action-text); border: 1px solid var(--action); border-radius: 6px; font-size: 14px; font-weight: 700; cursor: pointer; }
+.btn:hover:not(:disabled) { filter: brightness(1.08); }
+.btn:disabled { cursor: wait; opacity: .6; }
+.grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0; margin-bottom: 40px; border-top: 1px solid var(--border); border-left: 1px solid var(--border); }
+.card { display: flex; flex-direction: column; gap: 17px; min-width: 0; padding: 28px; border-bottom: 1px solid var(--border); border-right: 1px solid var(--border); background: color-mix(in srgb, var(--surface) 82%, transparent); }
+.card:first-child { background: var(--surface-raised); }
+.num { color: var(--accent); font: clamp(30px, 3vw, 42px)/1.1 var(--font-mono); overflow-wrap: anywhere; }
+.card:first-child .num { color: var(--text-main); }
+.label { color: var(--text-muted); font-size: 13px; line-height: 1.6; }
+.geography { padding: 26px; border: 1px solid var(--border); border-radius: 7px; background: var(--surface); }
+.sectionHeader { display: flex; align-items: center; gap: 12px; margin-bottom: 24px; color: var(--accent); }
+.subtitle { margin: 0; color: var(--text-main); font-size: 21px; letter-spacing: -.02em; }
+.tableWrap { overflow-x: auto; }
+.table { width: 100%; min-width: 250px; border-collapse: collapse; }
+.table th { padding: 13px 18px; background: var(--surface-raised); color: var(--text-muted); text-align: left; font: 11px/1.6 var(--font-mono); letter-spacing: .07em; text-transform: uppercase; }
+.table td { padding: 17px 18px; border-bottom: 1px solid var(--border); font-size: 14px; }
+.table tr:last-child td { border-bottom: 0; }
+.table :is(th, td):last-child { text-align: right; font-variant-numeric: tabular-nums; }
+.error { margin: 0 0 22px; padding: 15px 18px; border-left: 2px solid var(--error); background: var(--surface); color: var(--error); font-size: 14px; line-height: 1.6; }
+.loading { display: flex; align-items: center; gap: 10px; color: var(--text-muted); font-size: 14px; margin: 20px 0; }
+.page :is(button, input):focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+@media (max-width: 1000px) { .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 700px) {
+ .page { padding-top: 26px; }
+ .filters { padding: 18px; gap: 14px; }
+ .filterIcon, .rangeArrow { display: none; }
+ .filters label { width: 100%; justify-content: space-between; }
+ .filters input { flex: 1; min-width: 0; margin-left: 6px; }
+ .filters label:first-of-type input { margin-left: 14px; }
+ .btn { width: 100%; margin-left: 0; }
+ .card { padding: 22px 16px; }
+ .num { font-size: 28px; }
+ .label { font-size: 12px; }
+ .geography { padding: 20px 14px; }
+}
+
+/* Selected typography: Tektur + Golos Text. */
+.num{font-family:var(--font-display);font-weight:600;font-variant-numeric:tabular-nums}
+.title{letter-spacing:-.02em}
