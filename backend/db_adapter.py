@@ -2,6 +2,7 @@
 import os
 import re
 import sqlite3
+from datetime import datetime
 from pathlib import Path
 
 
@@ -12,7 +13,12 @@ class Row(dict):
 
 def row_factory(cursor):
     names = [column.name for column in cursor.description] if cursor.description else []
-    return lambda values: Row(zip(names, values))
+    # SQLite returns timestamp text. Keep the same API format with PostgreSQL,
+    # otherwise Flask changes dates to HTTP-date strings that break the UI.
+    return lambda values: Row(zip(names, (
+        value.isoformat(sep=" ") if isinstance(value, datetime) else value
+        for value in values
+    )))
 
 
 class PostgresCursor:
