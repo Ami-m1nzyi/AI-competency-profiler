@@ -1,9 +1,10 @@
 import json
+from pathlib import Path
 
-def load_question_map():
-    # Questions are refreshed by /api/questions between attempts.
-    with open("questions.json", "r", encoding="utf-8") as f:
-        current = json.load(f)
+def load_question_map(current=None):
+    if current is None:
+        with open(Path(__file__).with_name("questions.json"), encoding="utf-8") as f:
+            current = json.load(f)
     return {
         q["id"]: {
             "correct": q["correct"], "points": q["points"],
@@ -13,8 +14,8 @@ def load_question_map():
     }
 
 # Расчет баллов по модулям.
-def calculate_scores(answers):
-    question_map = load_question_map()
+def calculate_scores(answers, questions=None):
+    question_map = load_question_map(questions)
     # answers содержит ID вопросов и индексы выбранных вариантов.
 
     raw_scores = {

@@ -1,16 +1,18 @@
 import sqlite3
+import os
 from werkzeug.security import generate_password_hash, check_password_hash
+from db_adapter import connect, PostgresConnection
 
 DB_FILE = "profiler.db"
 
 def get_connection():
-    conn = sqlite3.connect(DB_FILE)
-    conn.row_factory = sqlite3.Row
-    return conn
+    return connect()
 
 def init_db():
     conn = get_connection()
     cur = conn.cursor()
+    if isinstance(conn, PostgresConnection):
+        cur.execute("SELECT pg_advisory_xact_lock(73419826)")
 
     cur.execute("""
         CREATE TABLE IF NOT EXISTS users (
@@ -138,12 +140,34 @@ def init_db():
         )
     """)
 
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS test_attempts (
+            id TEXT PRIMARY KEY,
+            user_id INTEGER NOT NULL REFERENCES users(id),
+            questions TEXT NOT NULL,
+            result TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
     conn.commit()
     create_default_users(cur, conn)
     conn.close()
 
 
 def create_default_users(cur, conn):
+    if os.getenv("DATABASE_URL") or os.getenv("VERCEL"):
+        admin_password = os.getenv("ADMIN_PASSWORD")
+        if not admin_password:
+            return
+        admin_login = os.getenv("ADMIN_LOGIN", "admin")
+        cur.execute("SELECT id FROM users WHERE login = ?", (admin_login,))
+        if not cur.fetchone():
+            cur.execute("""INSERT INTO users (name, login, password, role, first_name, email)
+                           VALUES (?, ?, ?, ?, ?, ?)""",
+                        ("Администратор", admin_login, generate_password_hash(admin_password),
+                         "admin", "Администратор", os.getenv("ADMIN_EMAIL", "")))
+            conn.commit()
+        return
     cur.execute("SELECT COUNT(*) FROM users")
     count = cur.fetchone()[0]
     if count > 0:

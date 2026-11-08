@@ -1,11 +1,17 @@
-from flask import Flask, request, jsonify, send_from_directory
-from flask_cors import CORS
+import os
+from pathlib import Path
+from dotenv import load_dotenv
+
+BASE_DIR = Path(__file__).resolve().parent
+load_dotenv(BASE_DIR / ".env")
+
+from flask import Flask, request, jsonify, send_from_directory, send_file, session, g
 from scorer import calculate_scores, get_profile, get_recommendations, form_teams_without_ai, load_question_map
-import json, os, uuid
+import json, uuid, io, threading, copy
 from datetime import datetime, timezone
 
 def load_questions():
-    with open("questions.json", "r", encoding="utf-8") as f:
+    with open(BASE_DIR / "questions.json", "r", encoding="utf-8") as f:
         return json.load(f)
 
 data = load_questions()
@@ -19,25 +25,51 @@ from database import (init_db, verify_password, save_result, get_all_results,
                       create_invite_token, verify_invite_token, mark_token_used, get_all_invite_tokens)
 from email_sender import send_ticket_resolved_email
 from activity import activity_bp, init_activity_table, record_event
+from auth import configure_auth
+from file_storage import MAX_FILE_SIZE, save_file, read_file, delete_file
 
 app = Flask(__name__, static_folder="static", static_url_path="")
-CORS(app)
-
-init_db()
-init_activity_table()
 app.register_blueprint(activity_bp)
+_schema_ready = False
+_schema_lock = threading.Lock()
+
+
+@app.before_request
+def initialize_database():
+    global _schema_ready
+    if not request.path.startswith("/api/") or _schema_ready:
+        return
+    with _schema_lock:
+        if not _schema_ready:
+            init_db()
+            init_activity_table()
+            _schema_ready = True
+
+
+configure_auth(app)
+
+
+@app.route("/api/health")
+def health():
+    conn = get_connection()
+    try:
+        conn.execute("SELECT 1").fetchone()
+    finally:
+        conn.close()
+    return jsonify(status="ok", database="postgres" if os.getenv("DATABASE_URL") else "sqlite")
 
 TOTAL_QUESTIONS = 25
-
-BASE_DIR      = os.path.dirname(os.path.abspath(__file__))
-UPLOAD_FOLDER = os.path.join(BASE_DIR, "uploads", "portfolio")
-os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
 ALLOWED_EXTENSIONS = {
     "pdf", "doc", "docx", "ppt", "pptx", "xls", "xlsx",
     "png", "jpg", "jpeg", "gif", "webp", "zip", "rar"
 }
-app.config["MAX_CONTENT_LENGTH"] = 10 * 1024 * 1024
+app.config["MAX_CONTENT_LENGTH"] = MAX_FILE_SIZE + 128 * 1024
+
+
+@app.errorhandler(413)
+def upload_too_large(error):
+    return jsonify(error="Файл слишком большой (максимум 4 МБ)"), 413
 
 def allowed_file(filename):
     return "." in filename and filename.rsplit(".", 1)[1].lower() in ALLOWED_EXTENSIONS
@@ -51,48 +83,35 @@ def index():
 @app.route("/api/questions")
 def get_questions():
     import random
-
-    try:
-        new_questions = generate_questions()
-        record_event("ai_request")
+    with open(BASE_DIR / "questions_bank.json", encoding="utf-8") as source:
+        bank = json.load(source)
+    if os.getenv("GENERATE_AI_QUESTIONS") == "1":
         try:
-            with open("questions_bank.json", "r", encoding="utf-8") as f:
-                bank = json.load(f)
-        except:
-            bank = {"modules": []}
-
-        for new_mod in new_questions["modules"]:
-            existing = next((m for m in bank["modules"] if m["id"] == new_mod["id"]), None)
-            if existing:
-                existing["questions"].extend(new_mod["questions"])
-            else:
-                bank["modules"].append(new_mod)
-
-        with open("questions_bank.json", "w", encoding="utf-8") as f:
-            json.dump(bank, f, ensure_ascii=False, indent=2)
-
-    except Exception as e:
-        import traceback
-        print(f"Ошибка генерации: {e}")
-        traceback.print_exc()
-        try:
-            with open("questions_bank.json", "r", encoding="utf-8") as f:
-                bank = json.load(f)
-        except:
-            return jsonify(data)
-
+            bank = generate_questions()
+            record_event("ai_request", g.user["id"])
+        except Exception:
+            app.logger.warning("Question generation unavailable; using the question bank")
     result = {"modules": []}
     for mod in bank["modules"]:
         questions = mod["questions"]
-        picked = random.sample(questions, min(5, len(questions)))
+        picked = copy.deepcopy(random.sample(questions, min(5, len(questions))))
         for i, q in enumerate(picked):
             q["id"] = f"{mod['id']}_{i+1}"
         result["modules"].append({**mod, "questions": picked})
 
-    with open("questions.json", "w", encoding="utf-8") as f:
-        json.dump(result, f, ensure_ascii=False, indent=2)
-
-    return jsonify(result)
+    attempt_id = uuid.uuid4().hex
+    conn = get_connection()
+    try:
+        conn.execute("INSERT INTO test_attempts (id, user_id, questions) VALUES (?, ?, ?)",
+                     (attempt_id, g.user["id"], json.dumps(result, ensure_ascii=False)))
+        conn.commit()
+    finally:
+        conn.close()
+    public_result = copy.deepcopy(result)
+    for module in public_result["modules"]:
+        for question in module["questions"]:
+            question.pop("correct", None)
+    return jsonify(**public_result, attempt_id=attempt_id)
 
 # РЕГИСТРАЦИЯ
 
@@ -175,6 +194,9 @@ def login():
     if selected_role and user["role"] != selected_role:
         return jsonify({"error": "Неверная роль для этого аккаунта"}), 403
 
+    session.clear()
+    session["user_id"] = user["id"]
+    session.permanent = True
     record_event("visit", user["id"])
 
     return jsonify({
@@ -187,6 +209,12 @@ def login():
         "group_name":   user.get("group_name"),
         "course_year":  user.get("course_year"),
     })
+
+@app.route("/api/logout", methods=["POST"])
+def logout():
+    session.clear()
+    return jsonify(ok=True)
+
 
 @app.route("/api/change-password", methods=["POST"])
 def change_pwd():
@@ -222,16 +250,31 @@ def change_pwd():
 @app.route("/api/submit", methods=["POST"])
 def submit():
     body               = request.get_json()
-    user_id            = body.get("user_id")
-    name               = body.get("name", "Студент")
+    user_id            = g.user["id"]
+    name               = g.user["name"]
     answers            = body.get("answers", {})
     time_spent         = body.get("time_spent", None)
-    questions_snapshot = body.get("questions_snapshot", "")
+    attempt_id = body.get("attempt_id")
+    conn = get_connection()
+    try:
+        attempt = conn.execute("SELECT questions, result FROM test_attempts WHERE id = ? AND user_id = ?",
+                               (attempt_id, user_id)).fetchone()
+    finally:
+        conn.close()
+    if not attempt:
+        return jsonify(error="Начните новый тест: попытка не найдена"), 400
+    if attempt["result"]:
+        return jsonify(json.loads(attempt["result"]))
+    questions_snapshot = attempt["questions"]
+    question_set = json.loads(questions_snapshot)
+    question_map = load_question_map(question_set)
     time_taken         = body.get("time_taken", "")
     timed_out          = body.get("timed_out") is True
 
-    if len(answers) < TOTAL_QUESTIONS and not timed_out:
-        unanswered = TOTAL_QUESTIONS - len(answers)
+    if not isinstance(answers, dict) or any(q_id not in question_map for q_id in answers):
+        return jsonify(error="Ответы не соответствуют тесту"), 400
+    if len(answers) < len(question_map) and not timed_out:
+        unanswered = len(question_map) - len(answers)
         return jsonify({
             "error": f"Ответ не на все вопросы. Пропущено: {unanswered} из {TOTAL_QUESTIONS}"
         }), 400
@@ -239,18 +282,20 @@ def submit():
     # At timeout every unanswered question contributes zero points. Keep the
     # original answers for review, without inventing a selected option.
     scoring_answers = (
-        {question_id: answers.get(question_id) for question_id in load_question_map()}
+        {question_id: answers.get(question_id) for question_id in question_map}
         if timed_out else answers
     )
-    scores  = calculate_scores(scoring_answers)
+    scores  = calculate_scores(scoring_answers, question_set)
     profile = get_profile(scores)
     basic_recommendations = get_recommendations(scores)
 
     try:
         ai_recommendations = get_ai_recommendations(name, scores, profile, time_spent)
+        recommendation_source = "ai"
     except Exception as e:
         ai_recommendations = "\n".join(basic_recommendations)
-        print(f"ИИ ошибка: {e}")
+        recommendation_source = "rules"
+        app.logger.warning("AI recommendations unavailable; using rules-based recommendations")
 
     record_event("ai_request", user_id)
 
@@ -262,12 +307,22 @@ def submit():
             time_taken=time_taken
         )
 
-    return jsonify({
+    response = {
         "scores":          scores,
         "profile":         profile,
         "recommendations": ai_recommendations,
-        "time_taken":      time_taken
-    })
+        "time_taken":      time_taken,
+        "questions_snapshot": questions_snapshot,
+        "recommendation_source": recommendation_source,
+    }
+    conn = get_connection()
+    try:
+        conn.execute("UPDATE test_attempts SET result = ? WHERE id = ? AND user_id = ?",
+                     (json.dumps(response, ensure_ascii=False), attempt_id, user_id))
+        conn.commit()
+    finally:
+        conn.close()
+    return jsonify(response)
 
 # РЕЗУЛЬТАТЫ
 
@@ -377,7 +432,10 @@ def portfolio_add():
             return jsonify({"error": "Недопустимый формат файла. Разрешены: " + ", ".join(sorted(ALLOWED_EXTENSIONS))}), 400
         ext         = uploaded.filename.rsplit(".", 1)[1].lower()
         stored_name = f"{user_id}_{uuid.uuid4().hex}.{ext}"
-        uploaded.save(os.path.join(UPLOAD_FOLDER, stored_name))
+        file_bytes = uploaded.read(MAX_FILE_SIZE + 1)
+        if len(file_bytes) > MAX_FILE_SIZE:
+            return jsonify(error="Файл слишком большой (максимум 4 МБ)"), 413
+        save_file(stored_name, file_bytes)
         file_path = stored_name
         file_name = uploaded.filename
         url = ""
@@ -401,10 +459,32 @@ def portfolio_add_json():
 
 @app.route("/api/portfolio/file/<path:filename>", methods=["GET"])
 def portfolio_file(filename):
-    return send_from_directory(UPLOAD_FOLDER, filename)
+    conn = get_connection()
+    try:
+        item = conn.execute("SELECT user_id, file_name FROM portfolio WHERE file_path = ?", (filename,)).fetchone()
+    finally:
+        conn.close()
+    if not item:
+        return jsonify(error="Файл не найден"), 404
+    if item["user_id"] != g.user["id"] and g.user["role"] not in ("teacher", "admin"):
+        return jsonify(error="Нет доступа"), 403
+    try:
+        content = read_file(filename)
+    except FileNotFoundError:
+        return jsonify(error="Файл не найден"), 404
+    return send_file(io.BytesIO(content), download_name=item["file_name"], as_attachment=True)
 
 @app.route("/api/portfolio/file-data/<int:item_id>", methods=["GET"])
 def get_portfolio_file_endpoint(item_id):
+    conn = get_connection()
+    try:
+        owner = conn.execute("SELECT user_id FROM portfolio WHERE id = ?", (item_id,)).fetchone()
+    finally:
+        conn.close()
+    if not owner:
+        return jsonify(error="Файл не найден"), 404
+    if owner["user_id"] != g.user["id"] and g.user["role"] not in ("teacher", "admin"):
+        return jsonify(error="Нет доступа"), 403
     result = get_portfolio_file(item_id)
     if not result:
         return jsonify({"error": "Файл не найден"}), 404
@@ -424,9 +504,9 @@ def portfolio_delete(item_id):
 
     if file_path:
         try:
-            os.remove(os.path.join(UPLOAD_FOLDER, file_path))
-        except OSError:
-            pass
+            delete_file(file_path)
+        except Exception:
+            app.logger.warning("Could not remove an unlinked portfolio file")
 
     return jsonify({"message": "Удалено"})
 
@@ -532,16 +612,21 @@ def create_invite():
 
     if not email:
         return jsonify({"error": "Укажите email"}), 400
+    if role != "teacher":
+        return jsonify(error="Приглашения доступны для преподавателей"), 400
 
     token = create_invite_token(email, role)
 
+    email_sent = False
     try:
         from email_sender import send_invite_email
         send_invite_email(email, token, role)
+        email_sent = True
     except Exception as e:
-        print(f"Не удалось отправить письмо: {e}")
+        app.logger.warning("Invitation email could not be delivered")
 
-    return jsonify({"message": "Инвайт создан и отправлен", "token": token})
+    return jsonify({"message": "Приглашение отправлено" if email_sent else "Приглашение создано. Передайте код преподавателю.",
+                    "token": token, "email_sent": email_sent})
 
 @app.route("/api/invite/list", methods=["GET"])
 def list_invites():

@@ -2,6 +2,7 @@ import requests
 from datetime import datetime, timezone, date
 from flask import Blueprint, request, jsonify
 from database import get_connection
+from db_adapter import ensure_column
 
 activity_bp = Blueprint("activity", __name__, url_prefix="/api/activity")
 
@@ -20,9 +21,7 @@ def init_activity_table():
         )
     """)
     # Добавляем в users дату регистрации, если её ещё нет
-    cols = [r["name"] for r in conn.execute("PRAGMA table_info(users)")]
-    if "created_at" not in cols:
-        conn.execute("ALTER TABLE users ADD COLUMN created_at TEXT")
+    ensure_column(conn, "users", "created_at", "TEXT")
     conn.commit()
     conn.close()
 
@@ -30,7 +29,7 @@ def init_activity_table():
 def get_country():
     """Определяем страну по IP."""
     # Если сайт за Cloudflare, страна уже в заголовке
-    country = request.headers.get("CF-IPCountry")
+    country = request.headers.get("X-Vercel-IP-Country") or request.headers.get("CF-IPCountry")
     if country:
         return country
 

@@ -6,7 +6,7 @@ import { Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Responsi
 import styles from './ProfilePage.module.css';
 
 const API = '';
-const MAX_FILE_SIZE = 10 * 1024 * 1024;
+const MAX_FILE_SIZE = 4 * 1024 * 1024;
 const ALLOWED_EXTENSIONS = ['pdf', 'doc', 'docx', 'ppt', 'pptx', 'xls', 'xlsx', 'png', 'jpg', 'jpeg', 'gif', 'webp', 'zip', 'rar'];
 
 const MODULE_NAMES = {
@@ -62,7 +62,7 @@ const AddPortfolioForm = ({ userId, onAdded }) => {
       return;
     }
     if (f.size > MAX_FILE_SIZE) {
-      setError('Файл слишком большой (максимум 10 МБ)');
+      setError('Файл слишком большой (максимум 4 МБ)');
       setFile(null);
       e.target.value = '';
       return;
@@ -183,7 +183,7 @@ const AddPortfolioForm = ({ userId, onAdded }) => {
             </span>
           )}
           <span className={styles.fileHint}>
-            До 10 МБ. PDF, DOC, PPT, XLS, изображения, ZIP
+            До 4 МБ. PDF, DOC, PPT, XLS, изображения, ZIP
           </span>
         </div>
       )}

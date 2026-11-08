@@ -60,7 +60,12 @@ function AppContent() {
     if (activeTab === 'results') trackEvent('bot_interaction', userData.id);
   }, [activeTab, isAuthenticated, userRole, userData]);
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    try {
+      await fetch('/api/logout', { method: 'POST' });
+    } catch {
+      // The screen still returns to sign-in if the connection is unavailable.
+    }
     setIsAuthenticated(false);
     setUserRole(null);
     setUserData(null);

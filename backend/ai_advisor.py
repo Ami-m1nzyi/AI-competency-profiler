@@ -6,10 +6,12 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-client = OpenAI(
-    api_key=os.environ["OPENROUTER_API_KEY"],
-    base_url="https://openrouter.ai/api/v1"
-)
+def get_client():
+    api_key = os.getenv("OPENROUTER_API_KEY")
+    if not api_key:
+        raise RuntimeError("AI provider is not configured")
+    return OpenAI(api_key=api_key, base_url="https://openrouter.ai/api/v1",
+                  timeout=35, max_retries=0)
     
 
 
@@ -64,7 +66,7 @@ def get_ai_recommendations(name, scores, profile, time_spent=None):
 Пиши дружелюбно, как наставник. Ровно 150-200 слов — не больше и не меньше. Обязательно заверши мысль до конца. Не используй markdown, решётки, звёздочки — только обычный текст.
 """
 
-    response = client.chat.completions.create(
+    response = get_client().chat.completions.create(
         model="openrouter/auto",
         messages=[
             {"role": "user", "content": prompt}
@@ -108,7 +110,7 @@ def get_teams(students):
 Пиши на русском языке в описании. Только JSON, никакого лишнего текста.
 """
 
-    response = client.chat.completions.create(
+    response = get_client().chat.completions.create(
         model="openrouter/auto",
         messages=[{"role": "user", "content": prompt}],
         max_tokens=2500,
@@ -165,7 +167,7 @@ def generate_questions():
 - Только JSON, никакого лишнего текста
 """
 
-    response = client.chat.completions.create(
+    response = get_client().chat.completions.create(
         model="openrouter/auto",
         messages=[{"role": "user", "content": prompt}],
         max_tokens=6000,

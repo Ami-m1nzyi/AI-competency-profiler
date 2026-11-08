@@ -36,7 +36,7 @@ def send_ticket_resolved_email(to_email, user_name, subject, admin_reply):
     msg.attach(MIMEText(body, "plain", "utf-8"))
 
     try:
-        with smtplib.SMTP("smtp.gmail.com", 587) as server:
+        with smtplib.SMTP("smtp.gmail.com", 587, timeout=10) as server:
             server.starttls()
             server.login(SENDER_EMAIL, SENDER_PASSWORD)
             server.send_message(msg)
@@ -68,7 +68,9 @@ def send_invite_email(to_email, token, role):
 """
     msg.attach(MIMEText(body, "plain", "utf-8"))
 
-    with smtplib.SMTP("smtp.gmail.com", 587) as server:
+    if not SENDER_EMAIL or "@" not in SENDER_EMAIL.strip("@") or not SENDER_PASSWORD:
+        raise RuntimeError("Email delivery is not configured")
+    with smtplib.SMTP("smtp.gmail.com", 587, timeout=10) as server:
         server.starttls()
         server.login(SENDER_EMAIL, SENDER_PASSWORD)
         server.send_message(msg)

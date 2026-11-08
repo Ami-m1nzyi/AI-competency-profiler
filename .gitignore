@@ -27,4 +27,7 @@ logs/
 .vscode/
 ~$*
 *.docx
-
+
+
+.vercel
+.pytest_cache/

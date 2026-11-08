@@ -1,0 +1,13 @@
+.git
+.venv
+.env*
+logs
+design-qa.md
+backend/.env*
+backend/profiler.db*
+backend/uploads
+backend/__pycache__
+backend/static
+frontend/node_modules
+frontend/dist
+tests

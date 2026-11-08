@@ -10,6 +10,7 @@ const formatTime = (seconds) => String(Math.floor(seconds / 60)).padStart(2, '0'
 
 const TestingPage = ({ user, onResultsReady }) => {
   const [modules, setModules] = useState([]);
+  const [attemptId, setAttemptId] = useState(null);
   const [allQuestions, setAllQuestions] = useState([]);
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [answers, setAnswers] = useState({});
@@ -73,12 +74,17 @@ const TestingPage = ({ user, onResultsReady }) => {
       const res = await fetch(API + '/api/submit', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          user_id: userId || null, name: userName, answers, timed_out: timeout,
+          user_id: userId || null, name: userName, answers, timed_out: timeout, attempt_id: attemptId,
           time_spent: timeSpent, questions_snapshot: JSON.stringify({ modules }), time_taken: timeLabel,
         }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Не удалось сохранить результаты. Попробуйте отправить ещё раз.');
+      if (data.questions_snapshot) {
+        const saved = JSON.parse(data.questions_snapshot);
+        setModules(saved.modules);
+        setAllQuestions(saved.modules.flatMap((mod) => mod.questions.map((q) => ({ ...q, module_id: mod.id }))));
+      }
       const completed = { ...data, timeout, userAnswers: { ...answers }, timeTaken: timeLabel };
       setResults(completed);
       setFinished(true);
@@ -89,7 +95,7 @@ const TestingPage = ({ user, onResultsReady }) => {
       submittingRef.current = false;
       setSubmitting(false);
     }
-  }, [answers, finished, modules, onResultsReady, userName, userId]);
+  }, [answers, attemptId, finished, modules, onResultsReady, userName, userId]);
 
   useEffect(() => {
     if (finished || loading || !started || submitting) return undefined;
@@ -112,6 +118,7 @@ const TestingPage = ({ user, onResultsReady }) => {
       const flat = data.modules.flatMap((mod) => mod.questions.map((q) => ({ ...q, module_id: mod.id })));
       if (!flat.length) throw new Error('Вопросы пока недоступны. Попробуйте ещё раз.');
       setModules(data.modules);
+      setAttemptId(data.attempt_id);
       setAllQuestions(flat);
       const now = Date.now();
       moduleStartTime.current = Object.fromEntries(data.modules.map((mod) => [mod.id, now]));
@@ -127,6 +134,7 @@ const TestingPage = ({ user, onResultsReady }) => {
   const handleRetry = () => {
     clearInterval(timerRef.current);
     setAnswers({}); setCurrentQuestion(0); setSecondsLeft(TOTAL_SECONDS);
+    setAttemptId(null);
     setFinished(false); setResults(null); setError(''); setStarted(false);
   };
 
